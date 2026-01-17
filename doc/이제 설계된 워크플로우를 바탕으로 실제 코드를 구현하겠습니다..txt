@@ -1,0 +1,162 @@
+이제 설계된 워크플로우를 바탕으로 실제 코드를 구현하겠습니다. 이 코드는 **Streamlit**을 기반으로 하며, AI 메뉴 추천 기능을 위해 **OpenAI API**를 사용하는 구조로 작성했습니다. (API 키가 없더라도 UI 흐름을 확인할 수 있도록 로직을 구성했습니다.)
+
+### 1. requirements.txt
+프로젝트 실행을 위해 필요한 라이브러리 목록입니다.
+```text
+streamlit
+openai
+pandas
+```
+
+### 2. main.py (Streamlit 앱 코드)
+
+```python
+import streamlit as st
+import pandas as pd
+from openai import OpenAI
+
+# 1. 초기 세션 상태 설정
+if 'ingredients' not in st.session_state:
+    st.session_state.ingredients = {
+        "생선": ["연어", "오징어"],
+        "고기": ["삼겹살", "차돌박이", "불고기"],
+        "야채": ["양파", "버섯", "당근"],
+        "냉동": ["너겟", "만두", "튀김"],
+        "기타": ["햄", "치즈", "진미채"]
+    }
+if 'selected_ingredients' not in st.session_state:
+    st.session_state.selected_ingredients = set()
+if 'custom_reqs' not in st.session_state:
+    st.session_state.custom_reqs = ["매운음식 X", "시원한 요리 선호", "뜨거운 요리 선호"]
+if 'selected_reqs' not in st.session_state:
+    st.session_state.selected_reqs = []
+if 'generated_menu' not in st.session_state:
+    st.session_state.generated_menu = None
+if 'final_plan' not in st.session_state:
+    st.session_state.final_plan = {}
+
+# --- 앱 타이틀 및 상단 ---
+st.title("🍳 방학 메뉴 추천 서비스")
+st.subheader("집에 있는 재료를 선택해 주세요")
+
+# --- 재료 추가하기 영역 ---
+with st.expander("➕ 새 재료 추가하기", expanded=False):
+    col1, col2, col3 = st.columns([2, 3, 1])
+    with col1:
+        new_cat = st.selectbox("종류", list(st.session_state.ingredients.keys()))
+    with col2:
+        new_item = st.text_input("재료명", placeholder="예: 소시지")
+    with col3:
+        if st.button("추가"):
+            if new_item and new_item not in st.session_state.ingredients[new_cat]:
+                st.session_state.ingredients[new_cat].append(new_item)
+                st.rerun()
+
+# --- 재료 선택 그리드 (이미지 레이아웃 재현) ---
+cols = st.columns(len(st.session_state.ingredients) + 1)
+for i, (category, items) in enumerate(st.session_state.ingredients.items()):
+    with cols[i]:
+        st.bold(f"**{category}**")
+        for item in items:
+            # 선택 여부에 따라 버튼 스타일 변경 (Primary/Secondary)
+            is_selected = item in st.session_state.selected_ingredients
+            if st.button(item, key=f"btn_{item}", type="primary" if is_selected else "secondary"):
+                if is_selected:
+                    st.session_state.selected_ingredients.remove(item)
+                else:
+                    st.session_state.selected_ingredients.add(item)
+                st.rerun()
+
+# --- 요구사항 영역 ---
+with cols[-1]:
+    st.bold("**요구사항**")
+    for req in st.session_state.custom_reqs:
+        if st.checkbox(req, key=f"req_{req}"):
+            if req not in st.session_state.selected_reqs:
+                st.session_state.selected_reqs.append(req)
+    
+    # 요구사항 직접 추가
+    new_req = st.text_input("요구사항 직접 입력", key="new_req_input")
+    if st.button("요구사항 추가"):
+        if new_req and new_req not in st.session_state.custom_reqs:
+            st.session_state.custom_reqs.append(new_req)
+            st.rerun()
+
+st.divider()
+
+# --- 메뉴 생성 로직 ---
+if st.button("🚀 메뉴 생성하기", type="primary"):
+    if not st.session_state.selected_ingredients:
+        st.warning("재료를 최소 하나 이상 선택해주세요.")
+    else:
+        with st.spinner("냉장고를 털어 메뉴를 구성 중입니다..."):
+            # 실제 구현 시 OpenAI API 호출 부분 (여기서는 구조화를 위해 Mock 데이터 사용)
+            # 프롬프트 예시: "선택된 재료: {selected}, 요구사항: {reqs}를 바탕으로 월~금 메뉴 3개씩 추천해줘"
+            mock_data = {
+                "월": ["김치볶음밥", "당근 파스타", "차돌 숙주 볶음"],
+                "화": ["오징어 볶음밥", "만둣국", "버섯 볶음"],
+                "수": ["연어 스테이크", "된장찌개", "너겟 샐러드"],
+                "목": ["차돌 짬뽕", "햄 치즈 토스트", "진미채 김밥"],
+                "금": ["오징어 튀김", "불고기 덮밥", "야채 카레"]
+            }
+            st.session_state.generated_menu = mock_data
+            st.success("메뉴 추천이 완료되었습니다!")
+
+# --- 메뉴 확정 화면 (화면 2) ---
+if st.session_state.generated_menu:
+    st.header("이번 주 후보 메뉴")
+    st.write("요일별로 가장 마음에 드는 메뉴를 하나씩 골라주세요.")
+    
+    days = ["월", "화", "수", "목", "금"]
+    selection_cols = st.columns(5)
+    
+    selected_weekly = {}
+    for i, day in enumerate(days):
+        with selection_cols[i]:
+            st.subheader(day)
+            options = st.session_state.generated_menu[day]
+            selected_weekly[day] = st.radio(f"{day}요일 선택", options, label_visibility="collapsed", key=f"select_{day}")
+
+    if st.button("✅ 메뉴 확정하기"):
+        st.session_state.final_plan = selected_weekly
+        st.balloons()
+
+# --- 최종 결과 및 레시피 출력 ---
+if st.session_state.final_plan:
+    st.divider()
+    st.header("📅 이번 주 메뉴 확정본")
+    
+    # 식단표 출력
+    df_plan = pd.DataFrame([st.session_state.final_plan])
+    st.table(df_plan)
+    
+    st.header("👨‍🍳 상세 레시피")
+    for day, menu in st.session_state.final_plan.items():
+        with st.expander(f"{day}: {menu} 레시피"):
+            st.write(f"**재료:** {', '.join(list(st.session_state.selected_ingredients)[:3])} 등")
+            st.write("**요리 방법:**")
+            st.write("1. 재료를 깨끗이 씻어 손질합니다.")
+            st.write(f"2. {menu}의 핵심 재료를 먼저 볶습니다.")
+            st.write("3. 간을 맞추고 맛있게 조리하여 완성합니다.")
+
+```
+
+### 3. 주요 구현 특징 설명
+
+1.  **동적 버튼 (토글 기능)**:
+    *   이미지에서 요구하신 대로 클릭 시 색상이 변하도록 `type="primary"`와 `secondary`를 `st.session_state.selected_ingredients`와 연동했습니다. 클릭하면 즉시 상태가 반영됩니다.
+2.  **데이터 관리**:
+    *   `st.session_state`를 적극 활용하여 재료 추가, 메뉴 생성, 최종 확정 단계에서도 데이터가 유실되지 않도록 설계했습니다.
+3.  **요구사항 추가 기능**:
+    *   사용자가 직접 텍스트를 입력해 요구사항 리스트를 늘릴 수 있는 인터페이스를 우측 컬럼에 배치했습니다.
+4.  **UI 레이아웃**:
+    *   `st.columns`를 사용하여 이미지와 유사하게 카테고리별로 정렬된 그리드 UI를 구현했습니다.
+5.  **확정 후 레시피 출력**:
+    *   메뉴를 확정하면 `st.table`로 깔끔하게 요약해주고, 하단에 `st.expander`를 이용해 각 메뉴의 레시피를 상세히 볼 수 있도록 했습니다.
+
+### 4. 실행 방법
+1.  Python이 설치된 환경에서 `pip install streamlit openai pandas`를 실행합니다.
+2.  위의 `main.py` 내용을 파일로 저장합니다.
+3.  터미널에서 `streamlit run main.py`를 입력하면 웹 브라우저가 열리며 서비스가 실행됩니다.
+
+*참고: 실제 AI 기능을 활성화하려면 OpenAI API 키를 설정하고 Mock 데이터 부분을 `client.chat.completions.create` 함수로 대체하면 됩니다.*
