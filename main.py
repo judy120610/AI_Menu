@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from utils import generate_menu_candidates, generate_recipes
+from utils import generate_menu_candidates, generate_recipes, create_pdf
 
 # Set page config
 st.set_page_config(
@@ -225,12 +225,24 @@ with tab1:
                 else:
                     st.markdown(recipe_content)
 
-        if st.button("🔄 처음으로 돌아가기"):
-            st.session_state.menu_candidates = []
-            st.session_state.selected_candidates = []
-            st.session_state.final_plan = {}
-            st.session_state.recipes = {}
-            st.rerun()
+        c_back, c_down = st.columns([1, 1])
+        with c_back:
+            if st.button("🔄 처음으로 돌아가기", use_container_width=True):
+                st.session_state.menu_candidates = []
+                st.session_state.selected_candidates = []
+                st.session_state.final_plan = {}
+                st.session_state.recipes = {}
+                st.rerun()
+        
+        with c_down:
+            pdf_bytes = create_pdf(st.session_state.final_plan, st.session_state.recipes)
+            st.download_button(
+                label="📄 PDF로 저장하기",
+                data=pdf_bytes,
+                file_name="weekly_menu.pdf",
+                mime="application/pdf",
+                use_container_width=True
+            )
 
 with tab2:
     st.header("🍽️ 메뉴를 추천해줘")

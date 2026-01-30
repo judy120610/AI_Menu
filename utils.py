@@ -22,7 +22,7 @@ def get_gemini_model():
         return None
     try:
         # Using gemini-flash-latest as an alternative to 2.0-flash
-        return genai.GenerativeModel('gemini-flash-latest')
+        return genai.GenerativeModel('gemini-2.5-flash')
     except Exception as e:
         print(f"Error initializing model: {e}")
         return None
@@ -113,3 +113,98 @@ def generate_recipes(final_plan, ingredients):
     except Exception as e:
         print(f"Error generating recipes: {e}")
         return None
+import io
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+
+def create_pdf(plan, recipes):
+    """
+    Generates a PDF file with the weekly menu and recipes.
+    Returns bytes.
+    """
+    buffer = io.BytesIO()
+    
+    # helper to register font
+    font_name = 'MalgunGothic'
+    try:
+        # Try standard Windows path first
+        pdfmetrics.registerFont(TTFont(font_name, 'malgun.ttf'))
+    except:
+        try:
+            # Try absolute path
+            pdfmetrics.registerFont(TTFont(font_name, 'C:/Windows/Fonts/malgun.ttf'))
+        except:
+            print("Korean font not found. Fallback to standard font (Korean may not show).")
+            font_name = 'Helvetica' # Fallback
+
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    story = []
+    
+    # Styles
+    styles = getSampleStyleSheet()
+    # Create a custom style for the header and body using the registered font
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontName=font_name,
+        fontSize=24,
+        spaceAfter=20
+    )
+    
+    if font_name != 'Helvetica':
+        body_style = ParagraphStyle(
+            'CustomBody',
+            parent=styles['Normal'],
+            fontName=font_name,
+            fontSize=10,
+            leading=14 # line spacing
+        )
+        heading_style = ParagraphStyle(
+            'CustomHeading',
+            parent=styles['Heading2'],
+            fontName=font_name,
+            fontSize=14,
+            spaceAfter=10,
+            spaceBefore=10
+        )
+    else:
+        body_style = styles['Normal']
+        heading_style = styles['Heading2']
+
+    # Title
+    story.append(Paragraph("주간 점심 메뉴 및 레시피", title_style))
+    story.append(Spacer(1, 12))
+    
+    # Content
+    days = ["월", "화", "수", "목", "금"]
+    for day in days:
+        menu_name = plan.get(day, "메뉴 없음")
+        recipe_content = recipes.get(day, "레시피 없음")
+        
+        # Day Header
+        story.append(Paragraph(f"{day}요일: {menu_name}", heading_style))
+        
+        # Recipe Body
+        # If recipe_content is dict, convert to string (though current implementation returns string usually, prompt asks for string in JSON)
+        # But previous prompt example showed JSON structure for recipe text.
+        # Let's handle string with newlines.
+        if isinstance(recipe_content, dict):
+            # Fallback if it parses as dict
+            text = str(recipe_content)
+        else:
+            text = str(recipe_content)
+            
+        # Replace newlines with <br/> for Paragraph
+        formatted_text = text.replace('\n', '<br/>')
+        
+        story.append(Paragraph(formatted_text, body_style))
+        story.append(Spacer(1, 12))
+        story.append(Spacer(1, 12)) # Extra space between days
+
+    doc.build(story)
+    buffer.seek(0)
+    return buffer.getvalue()
