@@ -7,6 +7,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Configure Gemini API
+# Ensure .env is loaded from the current directory strictly
+env_path = os.path.join(os.path.dirname(__file__), '.env')
+load_dotenv(env_path)
+
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 if GOOGLE_API_KEY:
     genai.configure(api_key=GOOGLE_API_KEY)
@@ -14,8 +18,14 @@ if GOOGLE_API_KEY:
 def get_gemini_model():
     """Returns the configured Gemini model."""
     if not GOOGLE_API_KEY:
+        print("Warning: GOOGLE_API_KEY not found in environment.")
         return None
-    return genai.GenerativeModel('gemini-2.5-flash')
+    try:
+        # Using gemini-flash-latest as an alternative to 2.0-flash
+        return genai.GenerativeModel('gemini-flash-latest')
+    except Exception as e:
+        print(f"Error initializing model: {e}")
+        return None
 
 def generate_menu_candidates(ingredients, requirements):
     """
@@ -24,11 +34,8 @@ def generate_menu_candidates(ingredients, requirements):
     """
     model = get_gemini_model()
     if not model:
-        # Fallback Mock Data
-        return [
-            "김치볶음밥 (Mock)", "된장찌개", "파스타", "부대찌개", "카레라이스",
-            "오므라이스", "떡볶이", "샌드위치", "불고기 덮밥", "야채 볶음밥"
-        ]
+        print("API Key missing or invalid.")
+        return []
 
     prompt = f"""
     You are a professional chef.
