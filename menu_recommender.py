@@ -28,22 +28,47 @@ def run_menu_recommender():
             
             User's Request: "{requirements}"
             
-            Task: Recommend ONE perfect lunch menu based on the user's request.
+            Task: Recommend exactly 10 distinct lunch menus based on the user's request.
             Provide the output in Korean.
             
             Format:
-            ### 🍱 추천 메뉴: [Menu Name]
-            
-            **추천 이유**: 
-            [Brief explanation (1-2 sentences) why this fits the request]
-            
-            **팁**: 
-            [A small tip for enjoying this dish or a side dish recommendation]
+            Return ONLY a valid JSON object with the following structure:
+            {{
+                "recommendations": [
+                    {{
+                        "menu": "Menu Name 1",
+                        "reason": "Brief reason for recommendation",
+                        "tip": "Short tip"
+                    }},
+                    ...
+                ]
+            }}
             """
             
             try:
                 response = model.generate_content(prompt)
+                import json
+                
+                text = response.text
+                # Clean up potential markdown formatting
+                if text.startswith("```"):
+                    text = text.split("\n", 1)[1]
+                    if text.endswith("```"):
+                        text = text.rsplit("\n", 1)[0]
+                
+                data = json.loads(text)
+                items = data.get("recommendations", [])
+                
                 st.markdown("---")
-                st.markdown(response.text)
+                st.subheader("🍱 추천 메뉴 10선")
+                
+                if items:
+                    for i, item in enumerate(items, 1):
+                        with st.expander(f"{i}. {item['menu']}"):
+                            st.write(f"**이유**: {item['reason']}")
+                            st.write(f"**팁**: {item['tip']}")
+                else:
+                    st.warning("메뉴를 추천받지 못했습니다.")
+
             except Exception as e:
                 st.error(f"오류가 발생했습니다: {e}")
