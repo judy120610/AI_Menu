@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from utils import generate_menu_candidates, generate_recipes, create_pdf
+from menu_recommender import run_menu_recommender
 
 # Set page config
 st.set_page_config(
@@ -245,12 +246,5 @@ with tab1:
             )
 
 with tab2:
-    st.header("🍽️ 메뉴를 추천해줘")
-    
-    # Under Construction Image
-    import os
-    img_path = os.path.join("doc", "under_construction.png")
-    if os.path.exists(img_path):
-        st.image(img_path, caption="열심히 공사중입니다! 조금만 기다려주세요 🍳", use_container_width=True)
-    else:
-        st.info("새로운 기능이 곧 추가될 예정입니다.")
+    run_menu_recommender()
+
