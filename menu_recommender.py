@@ -29,6 +29,12 @@ def run_menu_recommender():
             User's Request: "{requirements}"
             
             Task: Recommend exactly 10 distinct lunch menus based on the user's request.
+            
+            **CRITICAL CONSTRAINTS:**
+            1. **Variety is Key**: Recommned a diverse mix of cuisines (Korean, Western, Japanese, Chinese, etc.) and cooking methods (Soup, Grilled, Noodle, Rice, Fresh, etc.).
+            2. **Limit Stir-fry**: Do NOT recommend more than 3 stir-fried (Bokkeum) dishes.
+            3. **Avoid Repetition**: Do not suggest similar dishes (e.g., don't suggest 3 types of Kimchi stews).
+            
             Provide the output in Korean.
             
             Format:
