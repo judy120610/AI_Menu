@@ -11,7 +11,20 @@ load_dotenv()
 env_path = os.path.join(os.path.dirname(__file__), '.env')
 load_dotenv(env_path)
 
+import streamlit as st
+
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+
+if not GOOGLE_API_KEY:
+    try:
+        if "GOOGLE_API_KEY" in st.secrets:
+            GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
+    except FileNotFoundError:
+        # st.secrets might define FileNotFoundError if secrets.toml is missing locally
+        pass
+    except Exception:
+        pass
+
 if GOOGLE_API_KEY:
     genai.configure(api_key=GOOGLE_API_KEY)
 
