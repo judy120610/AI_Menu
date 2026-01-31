@@ -21,21 +21,6 @@ def run_menu_recommender():
             model = get_gemini_model()
             if not model:
                 st.error("API 설정을 확인해주세요. (API Key Missing)")
-                with st.expander("디버깅 정보 (정보 보호를 위해 키는 숨김 처리됨)"):
-                    import os
-                    env_key = os.getenv("GOOGLE_API_KEY")
-                    has_env = bool(env_key)
-                    
-                    has_secret = False
-                    try:
-                        if "GOOGLE_API_KEY" in st.secrets:
-                            has_secret = True
-                    except:
-                        pass
-                        
-                    st.write(f"- 환경변수 설정 여부: {'✅' if has_env else '❌'}")
-                    st.write(f"- Streamlit Secrets 설정 여부: {'✅' if has_secret else '❌'}")
-                    st.info("Streamlit Cloud를 사용 중이라면, [Add Secrets] 메뉴에서 GOOGLE_API_KEY를 설정해야 합니다.")
                 return
 
             prompt = f"""

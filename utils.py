@@ -36,7 +36,7 @@ def get_gemini_model():
     api_key = get_api_key()
     
     if not api_key:
-        print("Warning: GOOGLE_API_KEY not found in environment or secrets.")
+        st.error("🚫 API 키를 찾을 수 없습니다. (.env 또는 Secrets 설정을 확인하세요)")
         return None
         
     try:
@@ -44,7 +44,7 @@ def get_gemini_model():
         # Using gemini-flash-latest as an alternative to 2.0-flash
         return genai.GenerativeModel('gemini-2.5-flash')
     except Exception as e:
-        print(f"Error initializing model: {e}")
+        st.error(f"🚫 모델 초기화 중 오류가 발생했습니다: {e}")
         return None
 
 def generate_menu_candidates(ingredients, requirements):
