@@ -13,27 +13,34 @@ load_dotenv(env_path)
 
 import streamlit as st
 
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+import streamlit as st
 
-if not GOOGLE_API_KEY:
+def get_api_key():
+    """Try to get API key from environment variables or streamlit secrets."""
+    # 1. Try environment variable
+    api_key = os.getenv("GOOGLE_API_KEY")
+    if api_key:
+        return api_key
+    
+    # 2. Try Streamlit secrets
     try:
         if "GOOGLE_API_KEY" in st.secrets:
-            GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
-    except FileNotFoundError:
-        # st.secrets might define FileNotFoundError if secrets.toml is missing locally
+            return st.secrets["GOOGLE_API_KEY"]
+    except (FileNotFoundError, Exception):
         pass
-    except Exception:
-        pass
-
-if GOOGLE_API_KEY:
-    genai.configure(api_key=GOOGLE_API_KEY)
+    
+    return None
 
 def get_gemini_model():
     """Returns the configured Gemini model."""
-    if not GOOGLE_API_KEY:
-        print("Warning: GOOGLE_API_KEY not found in environment.")
+    api_key = get_api_key()
+    
+    if not api_key:
+        print("Warning: GOOGLE_API_KEY not found in environment or secrets.")
         return None
+        
     try:
+        genai.configure(api_key=api_key)
         # Using gemini-flash-latest as an alternative to 2.0-flash
         return genai.GenerativeModel('gemini-2.5-flash')
     except Exception as e:
